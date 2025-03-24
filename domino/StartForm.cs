@@ -17,6 +17,7 @@ namespace domino
             InitializeComponent();
             rb2Players.Checked = true;
             cbDifficulty.SelectedIndex = 0;
+            this.FormClosing += StartForm_FormClosing;
         }
 
         private void btnStart_Click(object sender, EventArgs e)
@@ -37,6 +38,11 @@ namespace domino
             var gameForm = new GameForm(playerCount, difficulty);
             gameForm.Show();
             this.Hide();
+        }
+        private void StartForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Application.Exit();
+            Environment.Exit(0);
         }
     }
 }

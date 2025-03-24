@@ -20,7 +20,7 @@ namespace domino
         }
         protected override void UpdateAppearance()
         {
-            this.PictureBox1.Image = Properties.Resources.tile_0_0;
+            this.PictureBox1.Image = Properties.Resources.tile_back;
 
             if (!IsRotated)
             {

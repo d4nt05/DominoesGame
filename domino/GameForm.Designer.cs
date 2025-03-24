@@ -48,7 +48,7 @@
             this.ClientSize = new System.Drawing.Size(1264, 761);
             this.Controls.Add(this.rulesButton);
             this.Name = "GameForm";
-            this.Text = "GameForm";
+            this.Text = "Игра \"Домино\"";
             this.ResumeLayout(false);
 
         }

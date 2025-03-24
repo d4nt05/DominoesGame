@@ -19,10 +19,12 @@ namespace domino
         private int _playerCount;
         private int _currentTurn;
         private int _selectedTileIndex = -1;
+        private bool _isGameOver = false;
         private List<Player> _players;
         private List<DominoTile> _stock;
         private List<DominoTile> _board;
         private DominoTileControl _selectedTileControl;
+
 
         private FlowLayoutPanel player2Tiles;
         private FlowLayoutPanel player3Tiles;
@@ -393,7 +395,7 @@ namespace domino
             {
                 UpdateUI();
             }
-                CheckWin();
+            CheckWin();
         }
 
         private async void MakeAIPlay()
@@ -468,21 +470,57 @@ namespace domino
 
         private bool CheckWin()
         {
+            if (_isGameOver) return true;
             foreach (var player in _players)
             {
                 if (player.Hand.Count == 0)
                 {
-                    MessageBox.Show($"{player.Name} выиграл!");
-                    Application.Exit();
-                    return true;
+                    _isGameOver = true;
+                    DialogResult result = MessageBox.Show(
+                        $"{player.Name} выиграл!\nХотите сыграть еще раз?",
+                        "Конец игры!",
+                        MessageBoxButtons.OKCancel,
+                        MessageBoxIcon.Question,
+                        MessageBoxDefaultButton.Button1
+                        );
+                    if (result == DialogResult.OK)
+                    {
+                        var mainMenu = new StartForm();
+                        mainMenu.Show();
+                        this.Hide();
+                        return true;
+                    }
+                    else
+                    {
+                        Application.Exit();
+                        return true;
+                    }
                 }
             }
 
             if (_stock.Count == 0 && !CanAnyPlayerMove())
             {
-                MessageBox.Show("Ничья! Базар закончился и никто не может ходить.");
-                Application.Exit();
-                return true;
+                _isGameOver = true;
+                DialogResult result = MessageBox.Show(
+                    "Ничья! Базар закончился и никто не может ходить.\nХотите сыграть еще раз?",
+                    "Конец игры!",
+                    MessageBoxButtons.OKCancel,
+                    MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button1
+                    );
+                if (result == DialogResult.OK)
+                {
+                    var mainMenu = new StartForm();
+                    mainMenu.Show();
+                    this.Hide();
+                    return true;
+                }
+                else 
+                {
+                    Application.Exit();
+                    return true;
+                }
+                    
             }
             return false;
         }
