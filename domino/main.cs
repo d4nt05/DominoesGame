@@ -15,6 +15,7 @@ namespace domino
         public main()
         {
             InitializeComponent();
+            this.FormClosing += main_FormClosing;
         }
 
         private void btnStart_Click(object sender, EventArgs e)
@@ -26,15 +27,34 @@ namespace domino
 
         private void btnLoad_Click(object sender, EventArgs e)
         {
-            OpenFileDialog openSave = new OpenFileDialog();
-            openSave.Filter = "Domino game save|*.domino";
-            openSave.Title = "Открыть сохраненную игру";
-            openSave.ShowDialog();
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Domino save files|*.domino",
+                Title = "Открыть сохраненную игру"
+            };
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                var saveData = SaveLoadManager.LoadGame(openFileDialog.FileName);
+                if (saveData != null)
+                {
+                    var gameForm = new GameForm(openFileDialog.FileName);
+                    gameForm.LoadGameData(openFileDialog.FileName);
+                    gameForm.Show();
+                    this.Hide();
+                }
+            }
         }
 
         private void btnExit_Click(object sender, EventArgs e)
         {
             Application.Exit();
+        }
+
+        private void main_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Application.Exit();
+            Environment.Exit(0);
         }
     }
 }

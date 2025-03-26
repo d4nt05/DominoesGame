@@ -12,18 +12,20 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using domino.Properties;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
+using System.Xml.Serialization;
+using System.IO;
 
 namespace domino
 {
     public partial class GameForm : Form
     {
-        private int _playerCount;
-        private int _currentTurn;
+        public int _playerCount;
+        public int _currentTurn;
         private int _selectedTileIndex = -1;
         private bool _isGameOver = false;
-        private List<Player> _players;
-        private List<DominoTile> _stock;
-        private List<DominoTile> _board;
+        public List<Player> _players;
+        public List<DominoTile> _stock;
+        public List<DominoTile> _board;
         private DominoTileControl _selectedTileControl;
         SoundPlayer _soundPlayer = new SoundPlayer(Properties.Resources.sound);
         private FlowLayoutPanel player2Tiles;
@@ -137,8 +139,9 @@ namespace domino
             this.Controls.Add(drawTileButton);
         }
 
-        private void InitializeGame(int playerCount, string aiDifficulty)
+        private void InitializeGame(int playerCount, string aiDifficulty,bool isLoadedFromSave = false)
         {
+            if (isLoadedFromSave) {  return ; }
             _playerCount = playerCount; // Инициализируем _playerCount
             _stock = GenerateStock();
             _players = GeneratePlayers(playerCount, aiDifficulty);
@@ -146,6 +149,16 @@ namespace domino
             _board = new List<DominoTile>();
             _currentTurn = DetermineStartingPlayer(); // Определяем первого игрока
             UpdateUI();
+        }
+
+        public GameForm(string filePath)
+        {
+            InitializeComponent();
+            InitializeUI();
+            LoadGameData(filePath);
+            this.KeyPreview = true;
+            this.KeyDown += GameForm_KeyDown;
+            this.FormClosing += GameForm_FormClosing;
         }
 
         private List<DominoTile> GenerateStock()
@@ -597,6 +610,68 @@ namespace domino
             }
         }
 
+        private void SaveGameDialog()
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog
+            {
+                Filter = "Domino save files|*.domino",
+                FileName = "save.domino",
+                Title = "Сохранить текущую игру"
+            };
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                SaveLoadManager.SaveGame(saveFileDialog.FileName, this);
+                MessageBox.Show("Игра сохранена!");
+            }
+        }
+
+        private void LoadGameDialog()
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog
+            {
+                Filter = "Domino save files|*.domino",
+                Title = "Открыть сохраненную игру"
+            };
+
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                LoadGameData(openFileDialog.FileName);
+            }
+        }
+
+        public void LoadGameData(string filePath)
+        {
+            var saveData = SaveLoadManager.LoadGame(filePath);
+            if (saveData == null) return;
+
+            _playerCount = saveData.PlayerCount;
+            _currentTurn = saveData.CurrentTurn;
+
+            _players = new List<Player>();
+            foreach (var pData in saveData.Players)
+            {
+                if (pData.PlayerType == "AIPlayer")
+                {
+                    _players.Add(new AIPlayer(pData.Name, pData.AIDifficulty) 
+                    {
+                        Hand = pData.Hand ?? new List<DominoTile>()
+                    });
+                }
+                else if (pData.PlayerType == "HumanPlayer")
+                {
+                    _players.Add(new HumanPlayer(pData.Name) 
+                    { 
+                        Hand = pData.Hand ?? new List<DominoTile>()
+                    });
+                }
+            }
+            _stock = saveData.Stock ?? new List<DominoTile>();
+            _board = saveData.Board ?? new List<DominoTile>();
+
+            if (_currentTurn >= _players.Count) _currentTurn = 0;
+            UpdateUI();
+        }
         private void SkipTurnButton_Click(object sender, EventArgs e)
         {
             NextTurn();
@@ -614,6 +689,15 @@ namespace domino
         {
             MessageBox.Show(
                 "Ваша задача в игре: выложить все фишки быстрее оппонентов.\nЧтобы выложить фишку на стол, кликните на нее мышкой, или нажмите F, выбрав нужную фишку с помощью кнопок A и D.\nЕсли у вас нет нужной фишки, то нужно сходить на базар (кнопка E).\nЕсли базар пуст и нет подходящей фишки, нужно пропустить ход (кнопка Q).\nУдачи!");
+        }
+        private void saveButton_Click(object sender, EventArgs e)
+        {
+            SaveGameDialog();
+        }
+
+        private void loadButton_Click(object sender, EventArgs e)
+        {
+            LoadGameDialog();
         }
 
         private void GameForm_KeyDown(object sender, KeyEventArgs e)
@@ -666,11 +750,16 @@ namespace domino
             {
                 restartButton_Click(sender, e);
             }
-        }
-        private void GameForm_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            Application.Exit();
-            Environment.Exit(0);
+
+            else if(e.KeyCode == Keys.L)
+            {
+                loadButton_Click(sender, e);
+            }
+
+            else if(e.KeyCode == Keys.S)
+            {
+                saveButton_Click(sender, e);
+            }
         }
 
         private void restartButton_Click(object sender, EventArgs e)
@@ -688,6 +777,11 @@ namespace domino
                 mainMenu.Show();
                 this.Hide();
             }
+        }
+        private void GameForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            Application.Exit();
+            Environment.Exit(0);
         }
     }
 }

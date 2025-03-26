@@ -8,7 +8,7 @@ namespace domino
 {
     public class AIPlayer : Player
     {
-        private readonly string _difficulty;
+        public readonly string _difficulty;
 
         public AIPlayer(string name, string difficulty) : base(name)
         {
