@@ -324,5 +324,8 @@
   <ItemGroup>
     <None Include="Resources_new\tile_back.png" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources_new\sound.wav" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -10,6 +10,7 @@ using System.Media;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using domino.Properties;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 
 namespace domino
@@ -24,8 +25,7 @@ namespace domino
         private List<DominoTile> _stock;
         private List<DominoTile> _board;
         private DominoTileControl _selectedTileControl;
-
-
+        SoundPlayer _soundPlayer = new SoundPlayer(Properties.Resources.sound);
         private FlowLayoutPanel player2Tiles;
         private FlowLayoutPanel player3Tiles;
         private FlowLayoutPanel player4Tiles;
@@ -177,13 +177,28 @@ namespace domino
         private void DealTiles()
         {
             Random rnd = new Random();
-            foreach (var player in _players)
+            if (_playerCount == 2)
             {
-                for (int i = 0; i < 7; i++)
+                foreach (var player in _players)
                 {
-                    int index = rnd.Next(_stock.Count);
-                    player.Hand.Add(_stock[index]);
-                    _stock.RemoveAt(index);
+                    for (int i = 0; i < 7; i++)
+                    {
+                        int index = rnd.Next(_stock.Count);
+                        player.Hand.Add(_stock[index]);
+                        _stock.RemoveAt(index);
+                    }
+                }
+            }
+            else
+            {
+                foreach (var player in _players)
+                {
+                    for (int i = 0; i < 5; i++)
+                    {
+                        int index = rnd.Next(_stock.Count);
+                        player.Hand.Add(_stock[index]);
+                        _stock.RemoveAt(index);
+                    }
                 }
             }
         }
@@ -344,6 +359,7 @@ namespace domino
                 // Если доска пуста — добавляем фишку как первую
                 if (_board.Count == 0)
                 {
+                    _soundPlayer.Play();
                     _board.Add(tile);
                 }
                 else
@@ -354,6 +370,7 @@ namespace domino
                     int buffer = 0;
                     if (tile.Left == rightEnd)
                     {
+                        _soundPlayer.Play();
                         _board.Add(tile);
                     }
                     else if (tile.Right == rightEnd)
@@ -362,10 +379,12 @@ namespace domino
                         tile.Left = tile.Right;
                         tile.Right = buffer;
                         control.RotateImage(img, RotateFlipType.Rotate180FlipNone);
+                        _soundPlayer.Play();
                         _board.Add(tile);
                     }
                     else if (tile.Right == leftEnd)
                     {
+                        _soundPlayer.Play();
                         _board.Insert(0, tile); // Добавляем в начало, если подходит левый конец
                     }
                     else if (tile.Left ==  leftEnd)
@@ -374,6 +393,7 @@ namespace domino
                         tile.Right = tile.Left;
                         tile.Left = buffer;
                         control.RotateImage(img,RotateFlipType.Rotate180FlipNone);
+                        _soundPlayer.Play();
                         _board.Insert(0, tile);
                     }
                 }
@@ -389,12 +409,8 @@ namespace domino
             if (_players[_currentTurn] is AIPlayer aiPlayer && !CheckWin())
             {
                 MakeAIPlay();
-                UpdateUI();
             }
-            else
-            {
-                UpdateUI();
-            }
+            UpdateUI();
             CheckWin();
         }
 
@@ -409,6 +425,7 @@ namespace domino
                 aiPlayer.Hand.Remove(chosenTile);
                 if (_board.Count == 0)
                 {
+                    _soundPlayer.Play();
                     _board.Add(chosenTile);
                     UpdateUI();
                     NextTurn();
@@ -421,6 +438,7 @@ namespace domino
                     int buffer = 0;
                     if (chosenTile.Left == rightEnd)
                      {
+                        _soundPlayer.Play();
                         _board.Add(chosenTile);
                     }
                     else if (chosenTile.Right == rightEnd)
@@ -429,10 +447,12 @@ namespace domino
                         chosenTile.Left = chosenTile.Right;
                         chosenTile.Right = buffer;
                         control.RotateImage(img, RotateFlipType.Rotate180FlipNone);
+                        _soundPlayer.Play();
                         _board.Add(chosenTile);
                     }
                     else if (chosenTile.Right == leftEnd)
                     {
+                        _soundPlayer.Play();
                         _board.Insert(0, chosenTile); // Добавляем в начало, если подходит левый конец
                     }
                     else if (chosenTile.Left == leftEnd)
@@ -441,6 +461,7 @@ namespace domino
                         chosenTile.Right = chosenTile.Left;
                         chosenTile.Left = buffer;
                         control.RotateImage(img, RotateFlipType.Rotate180FlipNone);
+                        _soundPlayer.Play();
                         _board.Insert(0, chosenTile);
                     }
                     UpdateUI();
@@ -641,11 +662,32 @@ namespace domino
             {
                 rulesButton_Click(sender, e);
             }
+            else if(e.KeyCode == Keys.R)
+            {
+                restartButton_Click(sender, e);
+            }
         }
         private void GameForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             Application.Exit();
             Environment.Exit(0);
+        }
+
+        private void restartButton_Click(object sender, EventArgs e)
+        {
+            DialogResult result = MessageBox.Show(
+                    "Вы действительно хотите начать новую игру?",
+                    "Начать новую игру?",
+                    MessageBoxButtons.OKCancel,
+                    MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button1
+                    );
+            if (result == DialogResult.OK)
+            {
+                var mainMenu = new StartForm();
+                mainMenu.Show();
+                this.Hide();
+            }
         }
     }
 }

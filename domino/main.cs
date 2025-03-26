@@ -26,7 +26,10 @@ namespace domino
 
         private void btnLoad_Click(object sender, EventArgs e)
         {
-
+            OpenFileDialog openSave = new OpenFileDialog();
+            openSave.Filter = "Domino game save|*.domino";
+            openSave.Title = "Открыть сохраненную игру";
+            openSave.ShowDialog();
         }
 
         private void btnExit_Click(object sender, EventArgs e)
