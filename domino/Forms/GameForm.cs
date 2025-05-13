@@ -180,9 +180,9 @@ namespace domino
             for (int i = 0; i < playerCount; i++)
             {
                 if (i == 0)
-                    players.Add(new HumanPlayer("Игрок 1"));
+                    players.Add(new HumanPlayer("Игрок"));
                 else
-                    players.Add(new AIPlayer($"AI {i + 1}", difficulty));
+                    players.Add(new AIPlayer($"Бот {i + 1}", difficulty));
             }
             return players;
         }
@@ -381,7 +381,46 @@ namespace domino
                     int leftEnd = _board.First().Left;
                     int rightEnd = _board.Last().Right;
                     int buffer = 0;
-                    if (tile.Left == rightEnd)
+                    if ((tile.Right == rightEnd && tile.Right == leftEnd) || (tile.Left == rightEnd && tile.Left == leftEnd) || 
+                        (tile.Right == leftEnd && tile.Left == rightEnd) || (tile.Left == leftEnd && tile.Right == rightEnd))
+                    {
+                        ChooseDialog dlg = new ChooseDialog();
+                        if(dlg.ShowDialog() == DialogResult.OK)
+                        {
+                            if (tile.Right == leftEnd)
+                            {
+                                _soundPlayer.Play();
+                                _board.Insert(0, tile); // Добавляем в начало, если подходит левый конец
+                            }
+                            else if (tile.Left == leftEnd)
+                            {
+                                buffer = tile.Right;
+                                tile.Right = tile.Left;
+                                tile.Left = buffer;
+                                control.RotateImage(img, RotateFlipType.Rotate180FlipNone);
+                                _soundPlayer.Play();
+                                _board.Insert(0, tile);
+                            }
+                        }
+                        else
+                        {
+                            if (tile.Left == rightEnd)
+                            {
+                                _soundPlayer.Play();
+                                _board.Add(tile);
+                            }
+                            else if (tile.Right == rightEnd)
+                            {
+                                buffer = tile.Left;
+                                tile.Left = tile.Right;
+                                tile.Right = buffer;
+                                control.RotateImage(img, RotateFlipType.Rotate180FlipNone);
+                                _soundPlayer.Play();
+                                _board.Add(tile);
+                            }
+                        }
+                    }
+                    else if (tile.Left == rightEnd)
                     {
                         _soundPlayer.Play();
                         _board.Add(tile);
