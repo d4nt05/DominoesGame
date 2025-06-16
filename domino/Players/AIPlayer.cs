@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace domino
 {
-    public class AIPlayer : Player
+    public abstract class AIPlayer : Player
     {
         public readonly string _difficulty;
 
@@ -38,21 +38,9 @@ namespace domino
             return null;
         }
 
-        private DominoTile GetBestTile(List<DominoTile> validTiles)
+        virtual protected DominoTile GetBestTile(List<DominoTile> validTiles)
         {
-            if (_difficulty == "Легкий")
-            {
-                return validTiles[new Random().Next(validTiles.Count)];
-            }
-            else if (_difficulty == "Средний")
-            {
-                return validTiles.OrderBy(t => t.Left + t.Right).First();
-            }
-            else if (_difficulty == "Сложный")
-            {
-                return validTiles.OrderByDescending(t => t.Left + t.Right).First();
-            }
-            return validTiles.First();
+            return null;
         }
     }
 }

@@ -14,6 +14,7 @@ using domino.Properties;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar;
 using System.Xml.Serialization;
 using System.IO;
+using domino.Players;
 
 namespace domino
 {
@@ -182,7 +183,20 @@ namespace domino
                 if (i == 0)
                     players.Add(new HumanPlayer("Игрок"));
                 else
-                    players.Add(new AIPlayer($"Бот {i + 1}", difficulty));
+                {
+                    if (difficulty == "Легкий")
+                    {
+                        players.Add(new AIPlayerEasy($"Бот {i + 1}", difficulty));
+                    }
+                    else if (difficulty == "Средний")
+                    {
+                        players.Add(new AIPlayerMedium($"Бот {i + 1}", difficulty));
+                    }
+                    else if (difficulty == "Сложный")
+                    {
+                        players.Add(new AIPlayerHard($"Бот {i + 1}", difficulty));
+                    }
+                }
             }
             return players;
         }
@@ -690,12 +704,29 @@ namespace domino
             _players = new List<Player>();
             foreach (var pData in saveData.Players)
             {
-                if (pData.PlayerType == "AIPlayer")
+                if (pData.PlayerType == "AIPlayerEasy" || pData.PlayerType == "AIPlayerMedium" || pData.PlayerType == "AIPlayerHard")
                 {
-                    _players.Add(new AIPlayer(pData.Name, pData.AIDifficulty) 
+                    if (pData.AIDifficulty == "Легкий")
                     {
-                        Hand = pData.Hand ?? new List<DominoTile>()
-                    });
+                        _players.Add(new AIPlayerEasy(pData.Name, pData.AIDifficulty)
+                        {
+                            Hand = pData.Hand ?? new List<DominoTile>()
+                        });
+                    }
+                    else if (pData.AIDifficulty == "Средний")
+                    {
+                        _players.Add(new AIPlayerMedium(pData.Name, pData.AIDifficulty)
+                        {
+                            Hand = pData.Hand ?? new List<DominoTile>()
+                        });
+                    }
+                    if (pData.AIDifficulty == "Сложный")
+                    {
+                        _players.Add(new AIPlayerHard(pData.Name, pData.AIDifficulty)
+                        {
+                            Hand = pData.Hand ?? new List<DominoTile>()
+                        });
+                    }
                 }
                 else if (pData.PlayerType == "HumanPlayer")
                 {
