@@ -38,6 +38,7 @@ namespace domino
         private Label stockLabel;
         private Button skipTurnButton;
         private Button drawTileButton;
+        GameMaster gameMaster = new GameMaster();
 
         public GameForm(int playerCount, string aiDifficulty)
         {
@@ -144,11 +145,11 @@ namespace domino
         {
             if (isLoadedFromSave) {  return ; }
             _playerCount = playerCount; // Инициализируем _playerCount
-            _stock = GenerateStock();
-            _players = GeneratePlayers(playerCount, aiDifficulty);
-            DealTiles();
+            _stock = gameMaster.GenerateStock();
+            _players = gameMaster.GeneratePlayers(playerCount, aiDifficulty);
+            gameMaster.DealTiles(playerCount,_stock,_players);
             _board = new List<DominoTile>();
-            _currentTurn = DetermineStartingPlayer(); // Определяем первого игрока
+            _currentTurn = gameMaster.DetermineStartingPlayer(this,_players,_currentTurn,_stock,_board,UpdateUI,_isGameOver); // Определяем первого игрока
             UpdateUI();
         }
 
@@ -160,74 +161,6 @@ namespace domino
             this.KeyPreview = true;
             this.KeyDown += GameForm_KeyDown;
             this.FormClosing += GameForm_FormClosing;
-        }
-
-        private List<DominoTile> GenerateStock()
-        {
-            var stock = new List<DominoTile>();
-            for (int i = 0; i < 7; i++)
-            {
-                for (int j = i; j < 7; j++)
-                {
-                    stock.Add(new DominoTile(i, j));
-                }
-            }
-            return stock;
-        }
-
-        private List<Player> GeneratePlayers(int playerCount, string difficulty)
-        {
-            var players = new List<Player>();
-            for (int i = 0; i < playerCount; i++)
-            {
-                if (i == 0)
-                    players.Add(new HumanPlayer("Игрок"));
-                else
-                {
-                    if (difficulty == "Легкий")
-                    {
-                        players.Add(new AIPlayerEasy($"Бот {i + 1}", difficulty));
-                    }
-                    else if (difficulty == "Средний")
-                    {
-                        players.Add(new AIPlayerMedium($"Бот {i + 1}", difficulty));
-                    }
-                    else if (difficulty == "Сложный")
-                    {
-                        players.Add(new AIPlayerHard($"Бот {i + 1}", difficulty));
-                    }
-                }
-            }
-            return players;
-        }
-
-        private void DealTiles()
-        {
-            Random rnd = new Random();
-            if (_playerCount == 2)
-            {
-                foreach (var player in _players)
-                {
-                    for (int i = 0; i < 7; i++)
-                    {
-                        int index = rnd.Next(_stock.Count);
-                        player.Hand.Add(_stock[index]);
-                        _stock.RemoveAt(index);
-                    }
-                }
-            }
-            else
-            {
-                foreach (var player in _players)
-                {
-                    for (int i = 0; i < 5; i++)
-                    {
-                        int index = rnd.Next(_stock.Count);
-                        player.Hand.Add(_stock[index]);
-                        _stock.RemoveAt(index);
-                    }
-                }
-            }
         }
 
         private void UpdateUI()
@@ -243,6 +176,9 @@ namespace domino
             player4Tiles.Controls.Clear();
             _selectedTileIndex = -1;
             _selectedTileControl = null;
+            _currentTurn = gameMaster.ReturnCurrentTurn();
+            currentTurnLabel.Text = $"Ход: {_players[_currentTurn].Name}";
+            stockLabel.Text = $"Осталось в базаре: {_stock.Count}";
             for (int i = 0; i < _players.Count; i++)
             {
                 var player = _players[i];
@@ -255,7 +191,7 @@ namespace domino
                 if (_players[_currentTurn] is HumanPlayer)
                 {
                     drawTileButton.Enabled = true;
-                    if (_stock.Count == 0)
+                    if (_stock.Count == 0 && _currentTurn == 0)
                     {
                         drawTileButton.Enabled = false;
                         skipTurnButton.Enabled = true;
@@ -289,10 +225,8 @@ namespace domino
                         }
                     }
             }
-
             // Обновление меток
-            currentTurnLabel.Text = $"Ход: {_players[_currentTurn].Name}";
-            stockLabel.Text = $"Осталось в базаре: {_stock.Count}";
+
         }
 
         private Image DrawBoard()
@@ -377,7 +311,7 @@ namespace domino
         private void OnTileClicked(DominoTile tile)
         {
             if (_players[_currentTurn] is AIPlayer) return;
-            if (CanPlaceTile(tile))
+            if (gameMaster.CanPlaceTile(tile,_board))
             {
                 var control = new DominoTileControl(tile);
                 var img = control.PictureBox1.Image;
@@ -464,189 +398,10 @@ namespace domino
                     }
                 }
                 UpdateUI();
-                NextTurn();
+                gameMaster.NextTurn(this,_currentTurn,_isGameOver,_board,_stock,_players,UpdateUI);
             }
         }
 
-        private void NextTurn()
-        {
-            _currentTurn = (_currentTurn + 1) % _players.Count;
-
-            if (_players[_currentTurn] is AIPlayer aiPlayer && !CheckWin())
-            {
-                MakeAIPlay();
-            }
-            UpdateUI();
-            CheckWin();
-        }
-
-        private async void MakeAIPlay()
-        {
-            await Task.Delay(2000);
-
-            var aiPlayer = (AIPlayer)_players[_currentTurn];
-            var chosenTile = aiPlayer.ChooseTile(_stock, _board);
-            if (chosenTile != null)
-            {
-                aiPlayer.Hand.Remove(chosenTile);
-                if (_board.Count == 0)
-                {
-                    _soundPlayer.Play();
-                    _board.Add(chosenTile);
-                    UpdateUI();
-                    NextTurn();
-                }
-                else {
-                    var control = new DominoTileControl(chosenTile);
-                    var img = control.PictureBox1.Image;
-                    int leftEnd = _board.First().Left;
-                    int rightEnd = _board.Last().Right;
-                    int buffer = 0;
-                    if (chosenTile.Left == rightEnd)
-                     {
-                        _soundPlayer.Play();
-                        _board.Add(chosenTile);
-                    }
-                    else if (chosenTile.Right == rightEnd)
-                    {
-                        buffer = chosenTile.Left;
-                        chosenTile.Left = chosenTile.Right;
-                        chosenTile.Right = buffer;
-                        control.RotateImage(img, RotateFlipType.Rotate180FlipNone);
-                        _soundPlayer.Play();
-                        _board.Add(chosenTile);
-                    }
-                    else if (chosenTile.Right == leftEnd)
-                    {
-                        _soundPlayer.Play();
-                        _board.Insert(0, chosenTile); // Добавляем в начало, если подходит левый конец
-                    }
-                    else if (chosenTile.Left == leftEnd)
-                    {
-                        buffer = chosenTile.Right;
-                        chosenTile.Right = chosenTile.Left;
-                        chosenTile.Left = buffer;
-                        control.RotateImage(img, RotateFlipType.Rotate180FlipNone);
-                        _soundPlayer.Play();
-                        _board.Insert(0, chosenTile);
-                    }
-                    UpdateUI();
-                    NextTurn();
-                }
-            }
-            else
-            {
-                UpdateUI();
-                NextTurn();
-            }
-        }
-
-        private bool CanPlaceTile(DominoTile tile)
-        {
-            if (_board.Count == 0) return true; // Первая фишка допустима
-
-            // Левый конец доски (левая часть самой левой фишки)
-            int leftEnd = _board.First().Left;
-
-            // Правый конец доски (правая часть самой правой фишки)
-            int rightEnd = _board.Last().Right;
-
-            return (tile.Left == leftEnd || tile.Right == leftEnd) ||
-                   (tile.Left == rightEnd || tile.Right == rightEnd);
-        }
-
-        private bool CheckWin()
-        {
-            if (_isGameOver) return true;
-            foreach (var player in _players)
-            {
-                if (player.Hand.Count == 0)
-                {
-                    _isGameOver = true;
-                    DialogResult result = MessageBox.Show(
-                        $"{player.Name} выиграл!\nХотите сыграть еще раз?",
-                        "Конец игры!",
-                        MessageBoxButtons.OKCancel,
-                        MessageBoxIcon.Question,
-                        MessageBoxDefaultButton.Button1
-                        );
-                    if (result == DialogResult.OK)
-                    {
-                        var mainMenu = new StartForm();
-                        mainMenu.Show();
-                        this.Hide();
-                        return true;
-                    }
-                    else
-                    {
-                        Application.Exit();
-                        return true;
-                    }
-                }
-            }
-
-            if (_stock.Count == 0 && !CanAnyPlayerMove())
-            {
-                _isGameOver = true;
-                DialogResult result = MessageBox.Show(
-                    "Ничья! Базар закончился и никто не может ходить.\nХотите сыграть еще раз?",
-                    "Конец игры!",
-                    MessageBoxButtons.OKCancel,
-                    MessageBoxIcon.Question,
-                    MessageBoxDefaultButton.Button1
-                    );
-                if (result == DialogResult.OK)
-                {
-                    var mainMenu = new StartForm();
-                    mainMenu.Show();
-                    this.Hide();
-                    return true;
-                }
-                else 
-                {
-                    Application.Exit();
-                    return true;
-                }
-                    
-            }
-            return false;
-        }
-
-        private bool CanAnyPlayerMove()
-        {
-            foreach (var player in _players)
-            {
-                var validTiles = player.GetValidTiles(_board);
-                if (validTiles.Any()) return true;
-            }
-            return false;
-        }
-
-        private int DetermineStartingPlayer()
-        {
-            // Определяем первого игрока с самой большой фишкой
-            int maxSum = -1;
-            int startingPlayerIndex = 0;
-
-            for (int i = 0; i < _players.Count; i++)
-            {
-                var player = _players[i];
-                foreach (var tile in player.Hand)
-                {
-                    int sum = tile.Left + tile.Right;
-                    if (sum > maxSum)
-                    {
-                        maxSum = sum;
-                        startingPlayerIndex = i;
-                    }
-                }
-            }
-            if (startingPlayerIndex != 0)
-            {
-                MakeAIPlay();
-            }
-            return startingPlayerIndex;
-        }
 
         private DominoTileControl CreateTileControl(DominoTile tile, bool isAI, bool isRotated)
         {
@@ -744,7 +499,7 @@ namespace domino
         }
         private void SkipTurnButton_Click(object sender, EventArgs e)
         {
-            NextTurn();
+            gameMaster.NextTurn(this, _currentTurn, _isGameOver, _board, _stock, _players, UpdateUI);
         }
         private void DrawTileButton_Click(object sender, EventArgs e)
         {
