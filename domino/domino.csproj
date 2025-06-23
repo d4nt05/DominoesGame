@@ -46,6 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GameMaster.cs" />
     <Compile Include="Players\AIPlayer.cs" />
     <Compile Include="Forms\ChooseDialog.cs">
       <SubType>Form</SubType>
